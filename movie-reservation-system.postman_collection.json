@@ -1,0 +1,203 @@
+{
+  "info": {
+    "name": "Movie Reservation System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "adminToken", "value": "" },
+    { "key": "userToken", "value": "" },
+    { "key": "movieId", "value": "" },
+    { "key": "showId", "value": "" },
+    { "key": "seatId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Register User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"archie\",\n  \"password\": \"password123\"\n}"
+        }
+      }
+    },
+    {
+      "name": "2. Login as User",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "var data = pm.response.json();",
+            "pm.collectionVariables.set('userToken', data.token);"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"archie\",\n  \"password\": \"password123\"\n}"
+        }
+      }
+    },
+    {
+      "name": "3. Login as Admin",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "var data = pm.response.json();",
+            "pm.collectionVariables.set('adminToken', data.token);"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+        }
+      }
+    },
+    {
+      "name": "4. Get All Movies (public)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/movies"
+      }
+    },
+    {
+      "name": "5. Admin Adds Movie",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "var data = pm.response.json();",
+            "pm.collectionVariables.set('movieId', data.id);"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": "{{baseUrl}}/movies",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Inception\",\n  \"description\": \"A mind-bending heist thriller\",\n  \"duration\": 148,\n  \"genre\": \"Sci-Fi\"\n}"
+        }
+      }
+    },
+    {
+      "name": "6. Normal User Tries to Add Movie (expect 403)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{userToken}}" }
+        ],
+        "url": "{{baseUrl}}/movies",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Not Allowed\",\n  \"description\": \"Should fail\",\n  \"duration\": 100,\n  \"genre\": \"Drama\"\n}"
+        }
+      }
+    },
+    {
+      "name": "7. Admin Creates Show",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "var data = pm.response.json();",
+            "pm.collectionVariables.set('showId', data.id);"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+        ],
+        "url": "{{baseUrl}}/shows",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"movieId\": {{movieId}},\n  \"startTime\": \"2026-09-10T18:30:00\",\n  \"endTime\": \"2026-09-10T21:00:00\"\n}"
+        }
+      }
+    },
+    {
+      "name": "8. Get Seats for Show",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "var data = pm.response.json();",
+            "if (data.length > 0) { pm.collectionVariables.set('seatId', data[0].seatId); }"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/shows/{{showId}}/seats"
+      }
+    },
+    {
+      "name": "9. Book Seat",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{userToken}}" }
+        ],
+        "url": "{{baseUrl}}/bookings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"showId\": {{showId}},\n  \"seatId\": {{seatId}}\n}"
+        }
+      }
+    },
+    {
+      "name": "10. Try Booking Same Seat Again (expect 409)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{userToken}}" }
+        ],
+        "url": "{{baseUrl}}/bookings",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"showId\": {{showId}},\n  \"seatId\": {{seatId}}\n}"
+        }
+      }
+    },
+    {
+      "name": "11. View My Bookings",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{userToken}}" }
+        ],
+        "url": "{{baseUrl}}/bookings/my"
+      }
+    },
+    {
+      "name": "12. Unauthorized Access (no token, expect 401)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/bookings/my"
+      }
+    }
+  ]
+}
