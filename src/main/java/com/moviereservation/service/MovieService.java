@@ -4,6 +4,7 @@ import com.moviereservation.dto.MovieRequest;
 import com.moviereservation.entity.Movie;
 import com.moviereservation.exception.MovieNotFoundException;
 import com.moviereservation.repository.MovieRepository;
+import com.moviereservation.repository.ShowRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,9 +13,11 @@ import java.util.List;
 public class MovieService {
 
     private final MovieRepository movieRepository;
+    private final ShowRepository showRepository;
 
-    public MovieService(MovieRepository movieRepository) {
+    public MovieService(MovieRepository movieRepository, ShowRepository showRepository) {
         this.movieRepository = movieRepository;
+        this.showRepository = showRepository;
     }
 
     public Movie createMovie(MovieRequest request) {
@@ -42,6 +45,9 @@ public class MovieService {
 
     public void deleteMovie(Long id) {
         Movie movie = getMovieById(id);
+        if (showRepository.existsByMovieId(id)) {
+            throw new IllegalArgumentException("Cannot delete a movie with scheduled shows");
+        }
         movieRepository.delete(movie);
     }
 }

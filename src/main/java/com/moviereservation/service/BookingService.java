@@ -2,11 +2,13 @@ package com.moviereservation.service;
 
 import com.moviereservation.dto.BookingRequest;
 import com.moviereservation.dto.BookingResponse;
+import com.moviereservation.dto.AdminBookingResponse;
 import com.moviereservation.entity.Booking;
 import com.moviereservation.entity.SeatStatus;
 import com.moviereservation.entity.ShowSeat;
 import com.moviereservation.entity.User;
 import com.moviereservation.exception.BookingNotFoundException;
+import com.moviereservation.exception.BookingAccessDeniedException;
 import com.moviereservation.exception.SeatAlreadyBookedException;
 import com.moviereservation.exception.SeatNotFoundException;
 import com.moviereservation.exception.UserNotFoundException;
@@ -69,15 +71,52 @@ public class BookingService {
         return response;
     }
 
-    public BookingResponse getBookingById(Long id) {
+    public List<AdminBookingResponse> getAllBookings() {
+        List<Booking> bookings = bookingRepository.findAll();
+        List<AdminBookingResponse> response = new ArrayList<>();
+        for (Booking booking : bookings) {
+            response.add(toAdminBookingResponse(booking));
+        }
+        return response;
+    }
+
+    public BookingResponse getBookingById(Long id, String username, boolean administrator) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
+        if (!administrator && !booking.getUser().getUsername().equals(username)) {
+            throw new BookingAccessDeniedException("You can only access your own bookings");
+        }
         return toBookingResponse(booking);
+    }
+
+    @Transactional
+    public void cancelBooking(Long id, String username, boolean administrator) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
+        if (!administrator && !booking.getUser().getUsername().equals(username)) {
+            throw new BookingAccessDeniedException("You can only cancel your own bookings");
+        }
+
+        ShowSeat showSeat = booking.getShowSeat();
+        showSeat.setStatus(SeatStatus.AVAILABLE);
+        showSeatRepository.save(showSeat);
+        bookingRepository.delete(booking);
     }
 
     private BookingResponse toBookingResponse(Booking booking) {
         return new BookingResponse(
                 booking.getId(),
+                booking.getShowSeat().getShow().getMovie().getTitle(),
+                booking.getShowSeat().getShow().getStartTime(),
+                booking.getShowSeat().getSeat().getSeatNumber(),
+                booking.getBookingTime()
+        );
+    }
+
+    private AdminBookingResponse toAdminBookingResponse(Booking booking) {
+        return new AdminBookingResponse(
+                booking.getId(),
+                booking.getUser().getUsername(),
                 booking.getShowSeat().getShow().getMovie().getTitle(),
                 booking.getShowSeat().getShow().getStartTime(),
                 booking.getShowSeat().getSeat().getSeatNumber(),

@@ -2,12 +2,15 @@ package com.moviereservation.controller;
 
 import com.moviereservation.dto.BookingRequest;
 import com.moviereservation.dto.BookingResponse;
+import com.moviereservation.dto.AdminBookingResponse;
 import com.moviereservation.service.BookingService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,8 +43,31 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getMyBookings(username));
     }
 
+    @GetMapping
+    public ResponseEntity<List<AdminBookingResponse>> getAllBookings() {
+        return ResponseEntity.ok(bookingService.getAllBookings());
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<BookingResponse> getBookingById(@PathVariable Long id) {
-        return ResponseEntity.ok(bookingService.getBookingById(id));
+    public ResponseEntity<BookingResponse> getBookingById(@PathVariable Long id,
+                                                           Authentication authentication) {
+        boolean administrator = isAdministrator(authentication);
+        return ResponseEntity.ok(bookingService.getBookingById(id, authentication.getName(), administrator));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> cancelBooking(@PathVariable Long id, Authentication authentication) {
+        boolean administrator = isAdministrator(authentication);
+        bookingService.cancelBooking(id, authentication.getName(), administrator);
+        return ResponseEntity.ok("Booking cancelled successfully");
+    }
+
+    private boolean isAdministrator(Authentication authentication) {
+        for (GrantedAuthority authority : authentication.getAuthorities()) {
+            if (authority.getAuthority().equals("ROLE_ADMIN")) {
+                return true;
+            }
+        }
+        return false;
     }
 }

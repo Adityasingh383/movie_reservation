@@ -14,6 +14,10 @@ public interface ShowSeatRepository extends JpaRepository<ShowSeat, Long> {
 
     List<ShowSeat> findByShowId(Long showId);
 
+    boolean existsByShowIdAndSeatId(Long showId, Long seatId);
+
+    void deleteByShowId(Long showId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT ss FROM ShowSeat ss WHERE ss.show.id = :showId AND ss.seat.id = :seatId")
     Optional<ShowSeat> findByShowIdAndSeatIdForUpdate(@Param("showId") Long showId, @Param("seatId") Long seatId);

@@ -58,3 +58,21 @@ variables, so running them top to bottom "just works" without manual copy-pastin
 | GET    | /bookings/{id}            | Authenticated |
 
 All requests other than register/login/browsing need `Authorization: Bearer <token>`.
+
+## Frontend
+
+The React frontend lives in `frontend/` and uses the Vite development proxy to
+forward `/api/*` requests to the backend at `http://localhost:8080`.
+
+Run the backend first, then in a second terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`. To build the frontend for production, run
+`npm run build` from `frontend/`. If the API is hosted elsewhere, set
+`VITE_API_URL` when building or running the frontend; the value should point to
+the API root without a trailing slash.
